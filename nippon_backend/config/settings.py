@@ -1,24 +1,31 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 import dj_database_url
+from dotenv import load_dotenv
 
+
+# =========================================================
+# BASE DIRECTORY / ENVIRONMENT
+# =========================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Local development only.
+# On Render, environment variables are configured in Render.
 load_dotenv(BASE_DIR / ".env")
 
 
 def env_list(name, default=""):
     return [
-        x.strip()
-        for x in os.getenv(name, default).split(",")
-        if x.strip()
+        item.strip()
+        for item in os.getenv(name, default).split(",")
+        if item.strip()
     ]
 
 
 # =========================================================
-# Django
+# SECURITY
 # =========================================================
 
 SECRET_KEY = os.getenv(
@@ -26,7 +33,20 @@ SECRET_KEY = os.getenv(
     "dev-insecure-change-me",
 )
 
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+DEBUG = os.getenv(
+    "DJANGO_DEBUG",
+    "True",
+).lower() == "true"
+
+
+# IMPORTANT:
+# Render will provide this through Environment Variables.
+#
+# Local:
+# DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+#
+# Production:
+# DJANGO_ALLOWED_HOSTS=backendofmedical-2.onrender.com,api.nippon-medical.com.np
 
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
@@ -35,7 +55,7 @@ ALLOWED_HOSTS = env_list(
 
 
 # =========================================================
-# Applications
+# APPLICATIONS
 # =========================================================
 
 INSTALLED_APPS = [
@@ -52,29 +72,48 @@ INSTALLED_APPS = [
     "corsheaders",
     "whitenoise",
 
-    # Local apps
+    # Local
     "bookings",
 ]
 
 
 # =========================================================
-# Middleware
+# MIDDLEWARE
 # =========================================================
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+
     "django.middleware.security.SecurityMiddleware",
+
     "whitenoise.middleware.WhiteNoiseMiddleware",
+
     "django.contrib.sessions.middleware.SessionMiddleware",
+
     "django.middleware.common.CommonMiddleware",
+
     "django.middleware.csrf.CsrfViewMiddleware",
+
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+
     "django.contrib.messages.middleware.MessageMiddleware",
+
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 
+# =========================================================
+# URL / WSGI
+# =========================================================
+
 ROOT_URLCONF = "config.urls"
+
+WSGI_APPLICATION = "config.wsgi.application"
+
+
+# =========================================================
+# TEMPLATES
+# =========================================================
 
 TEMPLATES = [
     {
@@ -85,31 +124,35 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
+                "django.contrib.auth.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
-
 
 # =========================================================
-# Database
+# DATABASE
 # =========================================================
+#
+# LOCAL:
+# Uses SQLite if DATABASE_URL is not present.
+#
+# RENDER:
+# Uses PostgreSQL when DATABASE_URL is configured.
+#
 
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
-        ssl_require=False,
+        ssl_require=not DEBUG,
     )
 }
 
 
-
 # =========================================================
-# Password validation
+# PASSWORD VALIDATION
 # =========================================================
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -141,34 +184,63 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # =========================================================
-# Internationalization
+# INTERNATIONALIZATION
 # =========================================================
 
 LANGUAGE_CODE = "en-us"
+
 TIME_ZONE = "Asia/Kathmandu"
 
 USE_I18N = True
+
 USE_TZ = True
 
 
 # =========================================================
-# Static files
+# STATIC FILES
 # =========================================================
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# WhiteNoise
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
 
 # =========================================================
-# CORS / CSRF
+# CORS
 # =========================================================
+#
+# Local:
+# http://localhost:3000
+# http://127.0.0.1:3000
+#
+# Production:
+# https://nippon-medical.com.np
+#
 
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000",
 )
+
+
+# =========================================================
+# CSRF
+# =========================================================
+#
+# Local:
+# http://localhost:3000
+# http://127.0.0.1:3000
+#
+# Production:
+# https://nippon-medical.com.np
+#
 
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
@@ -177,7 +249,7 @@ CSRF_TRUSTED_ORIGINS = env_list(
 
 
 # =========================================================
-# Django REST Framework
+# DJANGO REST FRAMEWORK
 # =========================================================
 
 REST_FRAMEWORK = {
@@ -191,7 +263,7 @@ REST_FRAMEWORK = {
 
 
 # =========================================================
-# Email - Gmail SMTP
+# EMAIL - GMAIL SMTP
 # =========================================================
 
 EMAIL_BACKEND = os.getenv(
@@ -200,7 +272,9 @@ EMAIL_BACKEND = os.getenv(
 )
 
 EMAIL_HOST = "smtp.gmail.com"
+
 EMAIL_PORT = 587
+
 EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = os.getenv(
@@ -219,13 +293,18 @@ EMAIL_TIMEOUT = 15
 
 
 # =========================================================
-# Booking email notifications
+# BOOKING EMAIL NOTIFICATIONS
 # =========================================================
 
 BOOKING_NOTIFY_EMAILS = env_list(
     "BOOKING_NOTIFY_EMAILS",
     "medicalnippon9@gmail.com",
 )
+
+
+# =========================================================
+# BOOKING ADMIN API
+# =========================================================
 
 BOOKING_ADMIN_API_PUBLIC = (
     os.getenv(
@@ -237,17 +316,44 @@ BOOKING_ADMIN_API_PUBLIC = (
 
 
 # =========================================================
-# Logging
+# PRODUCTION SECURITY
+# =========================================================
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+
+    SESSION_COOKIE_SECURE = True
+
+    CSRF_COOKIE_SECURE = True
+
+    SECURE_PROXY_SSL_HEADER = (
+        "HTTP_X_FORWARDED_PROTO",
+        "https",
+    )
+
+    SECURE_HSTS_SECONDS = 31536000
+
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+    SECURE_HSTS_PRELOAD = True
+
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+# =========================================================
+# LOGGING
 # =========================================================
 
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
         },
     },
+
     "loggers": {
         "bookings": {
             "handlers": ["console"],
